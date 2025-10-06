@@ -96,7 +96,6 @@
             <scope>test</scope>
         </dependency>
         
-        <!-- https://mvnrepository.com/artifact/de.jensd/fontawesomefx-fontawesome -->
         <dependency>
             <groupId>de.jensd</groupId>
             <artifactId>fontawesomefx-fontawesome</artifactId>
@@ -115,27 +114,52 @@
                     <target>21</target>
                 </configuration>
             </plugin>
+            
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <executions>
                     <execution>
-                        <!-- Default configuration for running with: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
                             <mainClass>
-                                com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.HelloApplication
+                                com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication
                             </mainClass>
-                            <launcher>app</launcher>
+                            <launcher>AlternarBI</launcher>
                             <jlinkZipName>app</jlinkZipName>
-                            <jlinkImageName>app</jlinkImageName>
+                            <jlinkImageName>runtime</jlinkImageName>
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
+                            <compress>2</compress>
+                            <addModules>
+                                <addModule>jdk.crypto.ec</addModule>
+                            </addModules>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <name>AlternarBI</name>
+                    <appVersion>1.0.0</appVersion>
+                    <vendor>Murillo HMS</vendor>
+                    <destination>target/dist</destination>
+                    <module>com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication</module>
+                    <runtimeImage>target/runtime</runtimeImage>
+                    <type>EXE</type>
+                    <winMenu>true</winMenu>
+                    <winDirChooser>true</winDirChooser>
+                    <winShortcut>true</winShortcut>
+                    <javaOptions>
+                        <option>-Dfile.encoding=UTF-8</option>
+                    </javaOptions>
+                </configuration>
             </plugin>
         </plugins>
     </build>
