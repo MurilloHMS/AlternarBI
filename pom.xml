@@ -6,7 +6,7 @@
 
     <groupId>com.proautokimium</groupId>
     <artifactId>AlternarPowerBI</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.2</version>
     <name>AlternarPowerBI</name>
 
     <properties>
@@ -147,7 +147,7 @@
                 <version>1.6.0</version>
                 <configuration>
                     <name>AlternarBI</name>
-                    <appVersion>1.0.0</appVersion>
+                    <appVersion>1.0.2</appVersion>
                     <vendor>Murillo HMS</vendor>
                     <destination>target/dist</destination>
                     <module>com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication</module>
