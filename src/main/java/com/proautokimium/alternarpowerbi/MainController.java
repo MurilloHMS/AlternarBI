@@ -14,7 +14,7 @@ import javafx.scene.control.TextInputDialog;
 
 public class MainController {
 
-    private static final long INTERVAL_MS = 5_000;
+    private static final long INTERVAL_MS = 45_000;
     private static final long INITIAL_DELAY_MS = 5_000;
     private static final int MIN_PAGES = 1;
     private static final int MAX_PAGES = 100;
