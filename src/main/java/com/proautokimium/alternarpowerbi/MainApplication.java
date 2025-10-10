@@ -10,9 +10,11 @@ import java.io.IOException;
 public class MainApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 400, 150);
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/fxml/main-view.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 450, 250);
         stage.setTitle("Alternar Power BI!");
+        stage.setAlwaysOnTop(true);
+        stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
     }
