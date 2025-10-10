@@ -21,7 +21,7 @@ public class MainController {
 
     private final SwitchPageService service = new SwitchPageService();
     private int PAGE_TOTAL = 0;
-    private final long INTERVAL_MS = 30000;
+    private final long INTERVAL_MS = 45000;
     private final long INITIAL_DELAY_MS = 5000;
     @FXML
     private Button pauseButton;

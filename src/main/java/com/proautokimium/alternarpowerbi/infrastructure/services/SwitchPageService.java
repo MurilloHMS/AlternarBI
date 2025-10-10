@@ -30,14 +30,18 @@ public class SwitchPageService {
 		Robot robot = new Robot();
 		
 		robot.keyPress(KeyEvent.VK_ALT);
+		Thread.sleep(50);
+		robot.keyRelease(KeyEvent.VK_ALT);
 		Thread.sleep(300);
-		robot.keyPress(KeyEvent.VK_H);
+		robot.keyPress(KeyEvent.VK_C);
+		Thread.sleep(50);
+		robot.keyRelease(KeyEvent.VK_C);
 		Thread.sleep(300);
 		robot.keyPress(KeyEvent.VK_R);
-		Thread.sleep(300);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		robot.keyRelease(KeyEvent.VK_H);
+		Thread.sleep(50);
 		robot.keyRelease(KeyEvent.VK_R);
+		
+		Thread.sleep(180000);
 	}
 	
 	public void goToFirstPage(int pages) throws AWTException, InterruptedException {
