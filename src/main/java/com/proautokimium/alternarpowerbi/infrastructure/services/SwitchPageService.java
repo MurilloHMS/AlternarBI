@@ -6,57 +6,59 @@ import java.awt.event.KeyEvent;
 
 public class SwitchPageService {
 
-	public void nextPage(int pageActual, int pageTotal) throws AWTException, InterruptedException {
-		Robot robot = new Robot();
-		
-		if(pageActual == pageTotal) {
-			goToFirstPage(pageTotal);
-		}else {
-			robot.keyPress(KeyEvent.VK_TAB);
-			Thread.sleep(50);
-			robot.keyPress(KeyEvent.VK_ENTER);
-			
-			Thread.sleep(100);
-			
-			robot.keyRelease(KeyEvent.VK_ENTER);
-			Thread.sleep(50);
-			robot.keyRelease(KeyEvent.VK_TAB);
-		}
-	}
-	
-	public void updateDatabase() throws AWTException, InterruptedException {
-		Thread.sleep(300);
-		
-		Robot robot = new Robot();
-		
-		robot.keyPress(KeyEvent.VK_ALT);
-		Thread.sleep(50);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		Thread.sleep(300);
-		robot.keyPress(KeyEvent.VK_C);
-		Thread.sleep(50);
-		robot.keyRelease(KeyEvent.VK_C);
-		Thread.sleep(300);
-		robot.keyPress(KeyEvent.VK_R);
-		Thread.sleep(50);
-		robot.keyRelease(KeyEvent.VK_R);
-		
-		Thread.sleep(180000);
-	}
-	
-	public void goToFirstPage(int pages) throws AWTException, InterruptedException {
-		Robot robot = new Robot();
-		
-		
-		robot.keyPress(KeyEvent.VK_SHIFT);
-		Thread.sleep(50);
-		
-		for(int i = 0; i < pages -1; i++) {
-			robot.keyPress(KeyEvent.VK_TAB);
-			Thread.sleep(50);
-			robot.keyRelease(KeyEvent.VK_TAB);
-		}
-		Thread.sleep(50);
-		robot.keyRelease(KeyEvent.VK_SHIFT);
-	}
+    private static final int KEY_PRESS_DELAY = 50;
+    private static final int KEY_ACTION_DELAY = 100;
+
+    private Robot robot;
+
+    public SwitchPageService() {
+        try {
+            this.robot = new Robot();
+            this.robot.setAutoDelay(10);
+        } catch (AWTException e) {
+            throw new RuntimeException("Erro ao inicializar Robot", e);
+        }
+    }
+
+    public void nextPage() throws InterruptedException {
+        pressTab();
+        Thread.sleep(KEY_ACTION_DELAY);
+        pressEnter();
+    }
+
+    public void goToFirstPage(int totalPages) throws InterruptedException {
+        robot.keyPress(KeyEvent.VK_SHIFT);
+        Thread.sleep(KEY_PRESS_DELAY);
+
+        for (int i = 0; i < totalPages - 1; i++) {
+            pressAndRelease(KeyEvent.VK_TAB, KEY_PRESS_DELAY);
+        }
+
+        robot.keyRelease(KeyEvent.VK_SHIFT);
+        Thread.sleep(KEY_PRESS_DELAY);
+        pressEnter();
+    }
+
+    public void firstPage() throws InterruptedException {
+        pressEnter();
+    }
+
+    private void pressTab() throws InterruptedException {
+        robot.keyPress(KeyEvent.VK_TAB);
+        Thread.sleep(KEY_PRESS_DELAY);
+        robot.keyRelease(KeyEvent.VK_TAB);
+    }
+
+    private void pressEnter() throws InterruptedException {
+        robot.keyPress(KeyEvent.VK_ENTER);
+        Thread.sleep(KEY_ACTION_DELAY);
+        robot.keyRelease(KeyEvent.VK_ENTER);
+    }
+
+    private void pressAndRelease(int keyCode, long delayAfter) throws InterruptedException {
+        robot.keyPress(keyCode);
+        Thread.sleep(KEY_PRESS_DELAY);
+        robot.keyRelease(keyCode);
+        Thread.sleep(delayAfter);
+    }
 }
