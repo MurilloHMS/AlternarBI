@@ -3,11 +3,16 @@ package com.proautokimium.alternarpowerbi.infrastructure.services;
 import java.awt.AWTException;
 import java.awt.Robot;
 import java.awt.event.KeyEvent;
+import java.util.logging.Logger;
+
+import com.proautokimium.alternarpowerbi.infrastructure.util.LoggerConfig;
 
 public class SwitchPageService {
 
     private static final int KEY_PRESS_DELAY = 50;
     private static final int KEY_ACTION_DELAY = 100;
+    
+    private static final Logger LOGGER = LoggerConfig.getLogger(SwitchPageService.class.getName());
 
     private Robot robot;
 
@@ -16,6 +21,7 @@ public class SwitchPageService {
             this.robot = new Robot();
             this.robot.setAutoDelay(10);
         } catch (AWTException e) {
+        	LOGGER.severe("Erro ao inicializar Robot: " + e.getMessage());
             throw new RuntimeException("Erro ao inicializar Robot", e);
         }
     }
