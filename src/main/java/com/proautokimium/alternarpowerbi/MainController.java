@@ -2,7 +2,11 @@ package com.proautokimium.alternarpowerbi;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
+
 import com.proautokimium.alternarpowerbi.infrastructure.services.SwitchPageService;
+import com.proautokimium.alternarpowerbi.infrastructure.util.LoggerConfig;
+
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;

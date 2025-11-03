@@ -6,7 +6,7 @@
 
     <groupId>com.proautokimium</groupId>
     <artifactId>AlternarPowerBI</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <name>AlternarPowerBI</name>
 
     <properties>
@@ -18,22 +18,22 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>21.0.6</version>
+            <version>21.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
-            <version>21.0.6</version>
+            <version>21.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
-            <version>21.0.6</version>
+            <version>21.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>21.0.6</version>
+            <version>21.0.8</version>
         </dependency>
         <dependency>
             <groupId>org.controlsfx</groupId>
@@ -123,9 +123,7 @@
                     <execution>
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>
-                                com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication
-                            </mainClass>
+                            <mainClass>com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication</mainClass>
                             <launcher>AlternarBI</launcher>
                             <jlinkZipName>app</jlinkZipName>
                             <jlinkImageName>runtime</jlinkImageName>
@@ -133,9 +131,6 @@
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
                             <compress>2</compress>
-                            <addModules>
-                                <addModule>jdk.crypto.ec</addModule>
-                            </addModules>
                         </configuration>
                     </execution>
                 </executions>
@@ -148,12 +143,12 @@
                 <configuration>
                     <name>AlternarBI</name>
                     <icon>src/main/resources/assets/icon.ico</icon>
-                    <appVersion>1.0.5</appVersion>
+                    <appVersion>1.0.6</appVersion>
                     <vendor>Murillo HMS</vendor>
                     <destination>target/dist</destination>
                     <module>com.proautokimium.alternarpowerbi/com.proautokimium.alternarpowerbi.MainApplication</module>
                     <runtimeImage>target/runtime</runtimeImage>
-                    <type>EXE</type>
+                    <type>MSI</type>
                     <winMenu>true</winMenu>
                     <winDirChooser>true</winDirChooser>
                     <winShortcut>true</winShortcut>
