@@ -9,19 +9,19 @@ import com.proautokimium.alternarpowerbi.infrastructure.util.LoggerConfig;
 
 public class SwitchPageService {
 
-    private static final int KEY_PRESS_DELAY = 50;
-    private static final int KEY_ACTION_DELAY = 100;
-    
-    private static final Logger LOGGER = LoggerConfig.getLogger(SwitchPageService.class.getName());
+    private static final int KEY_PRESS_DELAY = 40;
+    private static final int KEY_ACTION_DELAY = 120;
 
-    private Robot robot;
+    private static final Logger LOGGER = Logger.getLogger(SwitchPageService.class.getName());
+
+    private final Robot robot;
 
     public SwitchPageService() {
         try {
             this.robot = new Robot();
-            this.robot.setAutoDelay(10);
+            this.robot.setAutoDelay(0);
         } catch (AWTException e) {
-        	LOGGER.severe("Erro ao inicializar Robot: " + e.getMessage());
+            LOGGER.severe("Erro ao inicializar Robot: " + e.getMessage());
             throw new RuntimeException("Erro ao inicializar Robot", e);
         }
     }
@@ -36,12 +36,18 @@ public class SwitchPageService {
         robot.keyPress(KeyEvent.VK_SHIFT);
         Thread.sleep(KEY_PRESS_DELAY);
 
-        for (int i = 0; i < totalPages - 1; i++) {
+        int steps = Math.max(totalPages - 1, 1);
+        for (int i = 0; i < steps; i++) {
             pressAndRelease(KeyEvent.VK_TAB, KEY_PRESS_DELAY);
+
+            if (Thread.currentThread().isInterrupted()) {
+                LOGGER.warning("goToFirstPage interrompido na iteração " + i);
+                return;
+            }
         }
 
         robot.keyRelease(KeyEvent.VK_SHIFT);
-        Thread.sleep(KEY_PRESS_DELAY);
+        Thread.sleep(KEY_ACTION_DELAY * 2);
         pressEnter();
     }
 
