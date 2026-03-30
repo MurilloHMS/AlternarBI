@@ -1,9 +1,9 @@
 package com.proautokimium.alternarpowerbi;
 
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
+import com.proautokimium.alternarpowerbi.infrastructure.services.ConfigService;
 import com.proautokimium.alternarpowerbi.infrastructure.services.SwitchPageService;
 import com.proautokimium.alternarpowerbi.infrastructure.util.LoggerConfig;
 
@@ -11,75 +11,112 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextInputDialog;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.stage.Stage;
 
 public class MainController {
 
-    private static final long INTERVAL_MS = 45_000;
-    private static final long INITIAL_DELAY_MS = 5_000;
-    private static final int MIN_PAGES = 1;
-    private static final int MAX_PAGES = 100;
+    private static final Logger LOGGER = LoggerConfig.getLogger(MainController.class.getName());
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
-    private final AtomicBoolean isPaused = new AtomicBoolean(false);
+    private final AtomicBoolean isPaused  = new AtomicBoolean(false);
     private Thread workerThread;
-    private int totalPages = 0;
 
     private final SwitchPageService switchPageService = new SwitchPageService();
+    private final ConfigService     config            = ConfigService.getInstance();
 
-    @FXML private Button pauseButton;
-    @FXML private Button playButton;
+    @FXML private Button      playButton;
+    @FXML private Button      pauseButton;
+    @FXML private Button      stopButton;
     @FXML private ProgressBar progressBar;
-    @FXML private Label statusLabel;
-    @FXML private Button stopButton;
+    @FXML private Label       statusLabel;
+    @FXML private Label       subtitleLabel;
+
+    @FXML private Spinner<Integer> spinnerPages;
+    @FXML private Slider           sliderDefault;
+    @FXML private Label            lblDefaultSecs;
+    @FXML private CheckBox         checkLoop;
+    @FXML private javafx.scene.layout.VBox pageIntervalsContainer;
+    @FXML private TitledPane settingsPane;
 
     @FXML
     void initialize() {
         progressBar.setProgress(0.01);
-        updateStatus("Inicializando...");
-        totalPages = showPageConfigDialog();
-        if (totalPages <= 0) {
-            updateStatus("Configuração cancelada ou inválida");
-            setButtonStates(false, false, false);
-        } else {
-            updateStatus(String.format("Configurado para %d páginas. Pronto para iniciar!", totalPages));
-            setButtonStates(true, false, false);
+        setButtonStates(true, false, false);
+
+        spinnerPages.getValueFactory().setValue(config.getTotalPages());
+        sliderDefault.setValue(config.getDefaultIntervalMs() / 1000.0);
+        checkLoop.setSelected(config.isLoop());
+        updateSubtitle();
+        updateDefaultLabel();
+
+        spinnerPages.valueProperty().addListener((obs, o, n) -> {
+            config.setTotalPages(n);
+            rebuildPageIntervalRows();
+            updateSubtitle();
+        });
+
+        sliderDefault.valueProperty().addListener((obs, o, n) -> {
+            long ms = n.longValue() * 1000L;
+            config.setDefaultIntervalMs(ms);
+            updateDefaultLabel();
+            rebuildPageIntervalRows();
+        });
+
+        settingsPane.expandedProperty().addListener((obs, oldVal, expanded) -> {
+
+            Stage stage = (Stage) settingsPane.getScene().getWindow();
+
+            if (expanded) {
+                stage.setHeight(stage.getHeight() + 350);
+            } else {
+                stage.setHeight(stage.getHeight() - 350);
+            }
+
+        });
+
+        rebuildPageIntervalRows();
+        updateStatus("Pronto para iniciar");
+    }
+
+    @FXML void onPlayButtonClick(ActionEvent e)  {
+        if (isPaused.get()) resumeAutomation(); else startAutomation();
+    }
+    @FXML void onPauseButtonClick(ActionEvent e) { pauseAutomation(); }
+    @FXML void onStopButtonClick(ActionEvent e)  { stopAutomation(); }
+
+    @FXML
+    void onLoopChanged(ActionEvent e) {
+        config.setLoop(checkLoop.isSelected());
+    }
+
+    @FXML
+    void onApplyDefaultInterval(ActionEvent e) {
+        long ms = (long)(sliderDefault.getValue()) * 1000L;
+        for (int i = 1; i <= config.getTotalPages(); i++) {
+            config.setIntervalForPage(i, ms);
         }
+        rebuildPageIntervalRows();
     }
 
     @FXML
-    void onPlayButtonClick(ActionEvent event) {
-        if (isPaused.get()) resumeAutomation();
-        else startAutomation();
-    }
-
-    @FXML
-    void onPauseButtonClick(ActionEvent event) {
-        pauseAutomation();
-    }
-
-    @FXML
-    void onStopButtonClick(ActionEvent event) {
-        stopAutomation();
+    void onSaveConfig(ActionEvent e) {
+        config.save();
+        updateStatus("💾 Configurações salvas!");
+        LOGGER.info("Configurações salvas pelo usuário");
     }
 
     private void startAutomation() {
-        if (totalPages <= 0) {
-            updateStatus("Erro: Número de páginas inválido!");
-            return;
-        }
         isRunning.set(true);
         isPaused.set(false);
         progressBar.setProgress(0.01);
         setButtonStates(false, true, true);
 
-        Task<Void> automationTask = createAutomationTask();
-        workerThread = new Thread(automationTask);
+        workerThread = new Thread(buildAutomationTask(), "PowerBI-Automation-Thread");
         workerThread.setDaemon(true);
-        workerThread.setName("PowerBI-Automation-Thread");
         workerThread.start();
     }
 
@@ -106,100 +143,146 @@ public class MainController {
         });
     }
 
-    private Task<Void> createAutomationTask() {
+    private Task<Void> buildAutomationTask() {
         return new Task<>() {
             @Override
             protected Void call() throws Exception {
-                updateProgress(0, totalPages);
-                Platform.runLater(() -> updateStatus("⏳ Iniciando em 5 segundos..."));
-                Thread.sleep(INITIAL_DELAY_MS);
-                
-                
+                final int total = config.getTotalPages();
+
+                for (int i = 5; i > 0; i--) {
+                    if (!isRunning.get()) return null;
+                    final int sec = i;
+                    Platform.runLater(() ->
+                            updateStatus("⏳ Clique no Power BI! Iniciando em " + sec + "s...")
+                    );
+                    Thread.sleep(1_000);
+                }
+
+                Platform.runLater(() -> updateStatus("🔄 Indo para a página 1..."));
+                //switchPageService.goToFirstPage(total);
+
                 int currentPage = 1;
+
                 while (isRunning.get()) {
                     waitWhilePaused();
                     if (!isRunning.get()) break;
 
-                    try {
-                        processPage(currentPage);
+                    final int pg   = currentPage;
+                    final double p = (double) pg / total;
+                    Platform.runLater(() -> {
+                        progressBar.setProgress(p);
+                        statusLabel.setText(String.format("📄 Página %d de %d (%.0f%%)", pg, total, p * 100));
+                    });
 
-                        if (currentPage < totalPages) {
-                            currentPage++;
-                        } else {
-                            if (isRunning.get()) Thread.sleep(INTERVAL_MS);
-                            switchPageService.goToFirstPage(totalPages);
-                            currentPage = 1;
-                            continue;
-                        }
+                    LOGGER.info("Exibindo página " + currentPage + "/" + total);
 
-                        if (isRunning.get()) Thread.sleep(INTERVAL_MS);
+                    long intervalMs = config.getIntervalForPage(currentPage);
+                    sleepWithCountdown(intervalMs, currentPage, total);
 
-                    } catch (Exception e) {
-                        Platform.runLater(() -> updateStatus("❌ Erro: " + e.getMessage()));
+                    if (!isRunning.get()) break;
+                    waitWhilePaused();
+                    if (!isRunning.get()) break;
+
+                    if (currentPage < total) {
+                        switchPageService.nextPage();
+                        currentPage++;
+                    } else if (config.isLoop()) {
+                        Platform.runLater(() -> updateStatus("🔄 Reiniciando..."));
+                        switchPageService.goToFirstPage(total);
+                        currentPage = 1;
+                    } else {
                         break;
                     }
                 }
 
                 Platform.runLater(() -> {
                     progressBar.setProgress(0.01);
-                    updateStatus("✅ Automação finalizada");
+                    updateStatus(isRunning.get() ? "✅ Apresentação concluída!" : "⏹ Parado");
                     setButtonStates(true, false, false);
                 });
+                isRunning.set(false);
                 return null;
             }
 
             private void waitWhilePaused() throws InterruptedException {
-                while (isPaused.get() && isRunning.get()) Thread.sleep(500);
+                while (isPaused.get() && isRunning.get()) Thread.sleep(300);
             }
 
-            private void processPage(int pageNumber) throws Exception {
-                double progress = (double) pageNumber / totalPages;
-                Platform.runLater(() -> {
-                    progressBar.setProgress(progress);
-                    updateStatus(String.format("📄 Processando página %d de %d (%.0f%%)", pageNumber, totalPages, progress * 100));
-                });
-
-                if (pageNumber == 1) {
-                    switchPageService.firstPage();
-                } else {
-                    switchPageService.nextPage();
+            private void sleepWithCountdown(long totalMs, int page, int total) throws InterruptedException {
+                long elapsed = 0;
+                while (elapsed < totalMs && isRunning.get() && !isPaused.get()) {
+                    long slice = Math.min(500, totalMs - elapsed);
+                    Thread.sleep(slice);
+                    elapsed += slice;
+                    long secsLeft = (totalMs - elapsed) / 1000;
+                    final long sl = secsLeft;
+                    Platform.runLater(() ->
+                            statusLabel.setText(String.format(
+                                    "📄 Página %d de %d — próxima em %ds", page, total, sl))
+                    );
                 }
             }
-
         };
     }
 
-    private int showPageConfigDialog() {
-        TextInputDialog dialog = new TextInputDialog("10");
-        dialog.setTitle("Configuração Inicial");
-        dialog.setHeaderText("Configuração do Alterador Power BI");
-        dialog.setContentText("Número total de páginas:");
-        Optional<String> result = dialog.showAndWait();
-        if (result.isPresent()) {
-            try {
-                int pages = Integer.parseInt(result.get().trim());
-                if (pages < MIN_PAGES || pages > MAX_PAGES) {
-                    updateStatus(String.format("Valor deve estar entre %d e %d", MIN_PAGES, MAX_PAGES));
-                    return 0;
-                }
-                return pages;
-            } catch (NumberFormatException e) {
-                updateStatus("Valor inválido! Digite apenas números.");
-                return 0;
-            }
+    private void rebuildPageIntervalRows() {
+        pageIntervalsContainer.getChildren().clear();
+        int total = config.getTotalPages();
+
+        for (int i = 1; i <= total; i++) {
+            final int page = i;
+            long currentMs = config.getIntervalForPage(page);
+
+            Label lblPage = new Label(String.format("Pg %2d", page));
+            lblPage.getStyleClass().add("page-row-label");
+            lblPage.setPrefWidth(42);
+
+            Slider slider = new Slider(5, 300, currentMs / 1000.0);
+            slider.setBlockIncrement(5);
+            HBox.setHgrow(slider, Priority.ALWAYS);
+
+            Label lblVal = new Label(formatSecs((long)(currentMs / 1000)));
+            lblVal.getStyleClass().add("page-row-value");
+            lblVal.setPrefWidth(42);
+
+            slider.valueProperty().addListener((obs, o, n) -> {
+                long ms = n.longValue() * 1000L;
+                config.setIntervalForPage(page, ms);
+                lblVal.setText(formatSecs(n.longValue()));
+            });
+
+            HBox row = new HBox(8, lblPage, slider, lblVal);
+            row.setAlignment(Pos.CENTER_LEFT);
+            pageIntervalsContainer.getChildren().add(row);
         }
-        return 0;
     }
 
-    private void setButtonStates(boolean playEnabled, boolean pauseEnabled, boolean stopEnabled) {
+    private void updateDefaultLabel() {
+        long secs = (long) sliderDefault.getValue();
+        lblDefaultSecs.setText(formatSecs(secs));
+    }
+
+    private void updateSubtitle() {
+        subtitleLabel.setText(String.format(
+                "Configurado: %d páginas · %ds padrão por página",
+                config.getTotalPages(),
+                config.getDefaultIntervalMs() / 1000
+        ));
+    }
+
+    private String formatSecs(long secs) {
+        return secs < 60 ? secs + "s" : String.format("%.1fm", secs / 60.0);
+    }
+
+    private void setButtonStates(boolean play, boolean pause, boolean stop) {
         Platform.runLater(() -> {
-            playButton.setDisable(!playEnabled);
-            pauseButton.setDisable(!pauseEnabled);
-            stopButton.setDisable(!stopEnabled);
+            playButton.setDisable(!play);
+            pauseButton.setDisable(!pause);
+            stopButton.setDisable(!stop);
         });
     }
 
-    private void updateStatus(String message) {
-        Platform.runLater(() -> statusLabel.setText(message));
+    private void updateStatus(String msg) {
+        Platform.runLater(() -> statusLabel.setText(msg));
     }
 }
